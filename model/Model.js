@@ -1,14 +1,17 @@
-const Schema = mongoose.Schema;
+const mongoose = require("mongoose");
 
+const modelSchema = new mongoose.Schema({
+  SHIP_ID: {
+    type: String,
+  },
+  MMSI: {
+    type: String,
+    require: true,
+  },
+  imo: {
+    type: String,
+  },
+});
+const Model = mongoose.model("Model", modelSchema);
 
-const modelSchema = Schema({
-    SHIP_ID: {
-        type: String,
-        require: true,
-    },
-    MMSI: {
-        type: String,
-    },
-})
-
-module.exports = Schema("Model", modelSchema);
+module.exports = Model;

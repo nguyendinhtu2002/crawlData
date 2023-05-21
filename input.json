@@ -1,0 +1,24 @@
+[
+  {
+    "LAT": "5.900942",
+    "LON": "107.4846",
+    "SPEED": "78",
+    "COURSE": "43",
+    "HEADING": null,
+    "ELAPSED": "75",
+    "DESTINATION": "",
+    "FLAG": "CN",
+    "LENGTH": "70",
+    "SHIPNAME": "FU YUAN YU 006",
+    "SHIPTYPE": "2",
+    "SHIP_ID": "372714",
+    "WIDTH": "14",
+    "L_FORE": "30",
+    "W_LEFT": "7",
+    "MMSI": "403510000",
+    "IMO": "9386952",
+    "DATE": 1684585020,
+    "START": "ULSAN",
+    "END": "SINGAPORE"
+  }
+]
