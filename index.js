@@ -11,6 +11,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const { default: axios } = require("axios");
 const ModelRouter = require("./router/Model.js");
+const HistoryRouter = require("./router/History.js");
+
 const Model = require("./model/Model.js");
 const History = require("./model/History.js");
 dotenv.config();
@@ -259,18 +261,19 @@ const fetchDataWeb1 = async () => {
       console.error(error);
     });
 };
-cron.schedule("*/10 * * * *", () => {
-    fetchData();
-});
+// cron.schedule("*/10 * * * *", () => {
+//     fetchData();
+// });
 
 // cron.schedule("*/10 * * * *", () => {
 //     fetchDataWeb1();
 // });
-cron.schedule("*/1 * * * *", () => {
-    getMmsi();
-});
+// cron.schedule("*/1 * * * *", () => {
+//     getMmsi();
+// });
 
 app.use("/api/v1/Model", ModelRouter);
+app.use("/api/v1/History", HistoryRouter);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server listening on port ${process.env.PORT}`);

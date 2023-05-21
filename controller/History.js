@@ -1,4 +1,4 @@
-const History = require("../model/Model");
+const History = require("../model/History");
 
 const createHistory = async (req, res, next) => {
   try {
@@ -42,18 +42,28 @@ const getHistoryByMMSI = async (req, res, next) => {
   }
 };
 const deleteHistoryByMMSI = async (req, res, next) => {
-    try {
-      const { MMSI } = req.params;
-  
-      const deletedRecords = await History.deleteMany({ MMSI });
-  
-      if (deletedRecords.deletedCount === 0) {
-        return res.status(404).send("No history records found for the given MMSI");
-      }
-  
-      return res.status(200).send("History records deleted successfully");
-    } catch (error) {
-      next(error);
+  try {
+    const { MMSI } = req.params;
+
+    const deletedRecords = await History.deleteMany({ MMSI });
+
+    if (deletedRecords.deletedCount === 0) {
+      return res
+        .status(404)
+        .send("No history records found for the given MMSI");
     }
-  };
-module.exports = { createHistory, getHistoryByMMSI,deleteHistoryByMMSI };
+
+    return res.status(200).send("History records deleted successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+const getAll = async(req,res,next)=>{
+  try {
+    const data = await History.find({})
+    return res.json(data);
+  } catch (error) {
+      next(error)
+  }
+}
+module.exports = { createHistory, getHistoryByMMSI, deleteHistoryByMMSI,getAll };
