@@ -224,14 +224,9 @@ const getMmsi = async () => {
       const course = courseWithDegree.replace(" °", "");
 
       const dateTime = moment(result, "YYYY-MM-DD HH:mm").toDate();
-      const dateTimeTemp = moment(result, "YYYY-MM-DD HH:mm");
       const formattedDateTime = moment(dateTime).format("YYYY-MM-DD HH:mm:ss");
-      const unixTimestamp = Math.floor(dateTime.getTime() / 1000);
       const currentUrl = page.url();
-
       const mmsi = extractMmsiFromUrl(currentUrl);
-
-
       if (mmsi !== null) {
         try {
           const existingRecord = await History.findOne({
@@ -341,16 +336,16 @@ const fetchDataWeb1 = async () => {
       console.error(error);
     });
 };
-// cron.schedule("*/10 * * * *", () => {
-//     fetchData();
-// });
+cron.schedule("*/10 * * * *", () => {
+    fetchData();
+});
 
 // cron.schedule("*/10 * * * *", () => {
 //     fetchDataWeb1();
 // });
-// cron.schedule("*/1 * * * *", () => {
-//     getMmsi();
-// });
+cron.schedule("*/5 * * * *", () => {
+    getMmsi();
+});
 
 app.use("/api/v1/Model", ModelRouter);
 app.use("/api/v1/History", HistoryRouter);
