@@ -214,6 +214,7 @@ const getMmsi = async () => {
       const parts = link.split(" / ");
       const LAT = parseFloat(parts[0].replace("°", ""));
       const LOT = parseFloat(parts[1].replace("°", ""));
+      console.log(LAT + typeof LAT);
       const coordinates = await page.evaluate(() => {
         const element = document.querySelector(
           "p.MuiTypography-root:nth-child(7) b"
@@ -237,20 +238,20 @@ const getMmsi = async () => {
             const existingDateTime = moment(existingRecord.dataValues.DayTime);
             if (existingDateTime.isBefore(dateTime)) {
               const Long = parseFloat(LOT);
-              const Lat =  parseFloat(LAT);
+              const Lat = parseFloat(LAT);
               const DayTime = formattedDateTime;
-              const MoveDirection =  parseFloat(course);
-              const MoveSpeed =  parseFloat(speed);
+              const MoveDirection = parseFloat(course);
+              const MoveSpeed = parseFloat(speed);
               const MoveStart = arr[0];
               const MoveFinishExpected = arr[1];
               const IdVessel = id;
 
               const request = new sql.Request();
-              request.input("Long", sql.Int, Long);
-              request.input("Lat", sql.Int, Lat);
+              request.input("Long", sql.Float, Long);
+              request.input("Lat", sql.Float, Lat);
               request.input("DayTime", sql.DateTime, DayTime);
-              request.input("MoveDirection", sql.Int, MoveDirection);
-              request.input("MoveSpeed", sql.Int, MoveSpeed);
+              request.input("MoveDirection", sql.Float, MoveDirection);
+              request.input("MoveSpeed", sql.Float, MoveSpeed);
               request.input("MoveStart", sql.VarChar, MoveStart);
               request.input(
                 "MoveFinishExpected",
@@ -281,11 +282,11 @@ const getMmsi = async () => {
             const IdVessel = id;
 
             const request = new sql.Request();
-            request.input("Long", sql.Int, Long);
-            request.input("Lat", sql.Int, Lat);
+            request.input("Long", sql.Float, Long);
+            request.input("Lat", sql.Float, Lat);
             request.input("DayTime", sql.DateTime, DayTime);
-            request.input("MoveDirection", sql.Int, MoveDirection);
-            request.input("MoveSpeed", sql.Int, MoveSpeed);
+            request.input("MoveDirection", sql.Float, MoveDirection);
+            request.input("MoveSpeed", sql.Float, MoveSpeed);
             request.input("MoveStart", sql.VarChar, MoveStart);
             request.input(
               "MoveFinishExpected",
@@ -309,7 +310,6 @@ const getMmsi = async () => {
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 15000));
-
     }
     await browser.close();
   }
@@ -318,34 +318,94 @@ const headers = {
   "User-Agent":
     "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
   Cookie:
-    "_gcl_au=1.1.959588111.1683366545; _ga_6L2TW3CJE4=GS1.1.1683632576.1.1.1683633576.0.0.0; _ga=GA1.1.471123684.1683366545; _ga_0MB1EVE8B7=GS1.1.1684585685.4.1.1684585776.0.0.0; vfid=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1aWQiOjI0MzEzLCJyIjozLCJzZSI6MTY4NjE0NDg5NCwiZSI6MTY4NjE0NDg5NCwiaWRlbnRpdHkiOjI0MzEzLCJjbCI6MiwiZXhwIjoxNjg0NTg3NTc2LCJpYXQiOjE2ODQ1ODU3NzYsInJtYnIiOnRydWUsImp0aSI6MTI2MzEwNjh9.PRNhDWLnkxHeXZNqeQ2chGe2RHDK0juTXNlW3RDxCQJlquMCvkYOxV3WpZGqRe7OQWyM-mglSiGs6mWMGCl3EEtZPusWAtWDVSgecGaaNf5OcojPffXGt6QmK3nin2u5A0k3zyUc_uw1FrNNCeRM1dYRu9sE6a-s-U3L47Ids_XJ6p5sghTTZ1nNZklZAYSs3Axdp1H4_9Tbl5rmMgqABHPOQg1WqBCbPC6CQliEjA2U_phkAK4rp3z20UAS-PGbNd8rN9Wo3dcMlikN9uZzQcmDUC9SBoBk6f5JZj4rphvQvO4-8nW9VYBFON-O1bdfp-v4YukmRn8XGEbsrBhNoA",
+    "_gcl_au=1.1.959588111.1683366545; _gid=GA1.2.1511547016.1684835954; _ga=GA1.1.471123684.1683366545; _ga_6L2TW3CJE4=GS1.1.1684835953.2.1.1684836140.0.0.0; _ga_0MB1EVE8B7=GS1.1.1684852843.11.1.1684859114.0.0.0; vfid=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1aWQiOjI0MzEzLCJyIjozLCJzZSI6MTY4NjE0NDg5NCwiZSI6MTY4NjE0NDg5NCwiaWRlbnRpdHkiOjI0MzEzLCJjbCI6MiwiZXhwIjoxNjg0ODYwOTE0LCJpYXQiOjE2ODQ4NTkxMTQsInJtYnIiOnRydWUsImp0aSI6MTI2OTk0MDZ9.Hhc220PWziSyFiepo8-1MF-cuv-zPVibmWSkx1AsDk85HU7Sz52YV9WWvUPEz2nm4uwvEOSMic83N_dYuW_ADXwyBHfaMKYs5Li6hz_4a4HAmSs5mn0Bux6lk59np5txP6hw79oAn6zfWQEoAPKYarW162LYHg7GN8AZo3tZhzjpIbvQ2FnUYgIcS5_uRdVgq4IBaiMOFsFkKFuv3nVyl-18eKYfCVU1oOySBRDrk-J-Hk0OUEPi-UKtGWdUlgUyhrjtVFeHSyqPliEU-UyMydpvyEKRX66fDVsCXRB8MgfrmJiPAEPfP2sl2Bto06a7spOZJ4yZbclgnaoXd1IjZA",
   Referer: "https://www.vesselfinder.com/pro/map",
 };
 
 const fetchDataWeb1 = async () => {
-  await axios
-    .get("https://www.vesselfinder.com/api/pro/myfleet2/0?1684585777", {
-      headers,
-    })
-    .then((response) => {
-      // Handle response
-      console.log(response.data.d);
-    })
-    .catch((error) => {
-      // Handle error
-      console.error(error);
-    });
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+
+  await sql.connect(config);
+
+  const query = "SELECT IMO,MMSI FROM VesselInfo";
+  const result = await sql.query(query);
+  const records = result.recordset;
+  const data = [];
+
+  await page.goto("https://www.vesselfinder.com/login");
+  await page.waitForSelector("#email");
+  await page.type("#email", "andesong2488@gmail.com");
+
+  await page.waitForSelector("#password");
+  await page.type("#password", "RRw6JkwK");
+
+  await page.waitForSelector("#loginbtn");
+  await page.click("#loginbtn");
+  await page.waitForNavigation();
+
+  for (const item of records) {
+    try {
+      await page.goto(
+        `https://www.vesselfinder.com/pro/map#vessel-details?imo=${item.IMO}&mmsi=${item.MMSI}`
+      );
+
+      await page.waitForSelector(".Znd6C span");
+      const elements = await page.$$eval(".Znd6C span", (spans) => {
+        return spans.map((span) => span.textContent);
+      });
+
+      await page.waitForSelector("td.LD1v7");
+      const valueElements = await page.$$("td.LD1v7");
+
+      let course = "";
+      let speed = "";
+
+      if (valueElements.length >= 3) {
+        const valueElement = valueElements[2];
+        const valueText = await page.evaluate(
+          (element) => element.textContent,
+          valueElement
+        );
+
+        const regex = /(\d+\.\d+)° \/ (\d+\.\d+)/;
+        const matches = valueText.match(regex);
+
+        if (matches) {
+          course = matches[1];
+          speed = matches[2];
+        }
+      }
+
+      const newData = {
+        ss: speed,
+        dest: elements[0],
+        cu: course,
+        end: elements[1],
+      };
+
+      data.push(newData);
+      console.log(`Data for MMSI ${item.MMSI} retrieved successfully`);
+    } catch (error) {
+      console.error(`Error for MMSI ${item.MMSI}: ${error.message}`);
+    }
+  }
+
+  await browser.close();
+  fs.writeFileSync("data.json", JSON.stringify(data));
 };
-cron.schedule("*/10 * * * *", () => {
-    fetchData();
-});
+
+fetchDataWeb1();
+// cron.schedule("*/10 * * * *", () => {
+//     fetchData();
+// });
 
 // cron.schedule("*/10 * * * *", () => {
 //     fetchDataWeb1();
 // });
-cron.schedule("*/5 * * * *", () => {
-    getMmsi();
-});
+// cron.schedule("*/5 * * * *", () => {
+//     getMmsi();
+// });
 
 app.use("/api/v1/Model", ModelRouter);
 app.use("/api/v1/History", HistoryRouter);
