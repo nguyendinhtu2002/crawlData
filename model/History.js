@@ -1,43 +1,65 @@
-const mongoose = require("mongoose");
+const { Sequelize, DataTypes } = require("sequelize");
+const moment = require('moment');
 
-const historySchema = new mongoose.Schema({
-  SHIP_ID: {
-    type: String,
-    require: true,
+const sequelize = new Sequelize({
+  dialect: "mssql",
+  host: "localhost",
+  server: "TU", // Kiểm tra và cung cấp tên máy chủ của cơ sở dữ liệu
+  database: "MMSI",
+  username: "admin1",
+  password: "admin",
+  dialectOptions: {
+    options: {
+      trustedConnection: true,
+    },
   },
-  MMSI: {
-    type: String,
-    require: true,
-  },
-  imo: {
-    type: String,
-    require: true,
-  },
-  LAT: {
-    type: Number,
-    require: true,
-  },
-  LON:{
-    type: Number,
-    require: true,
-  },
-  SPEED:{
-    type: Number,
-    require: true,
-  },
-  START:{
-    type: String,
-    require: true,
-  },
-  END:{
-    type: String,
-    require: true,
-  },
-  DATE:{
-    type: Number,
-    require: true,
-  }
 });
-const History = mongoose.model("History", historySchema);
+
+const History = sequelize.define(
+  "VesselInfo",
+  {
+    Id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    Long: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+    },
+    Lat: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+    },
+    DayTime: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+    MoveDirection: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    MoveSpeed: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+    },
+    MoveStart: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    MoveFinishExpected: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    IdVessel: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+  },
+  {
+    tableName: "MoveOnSea", // Tên của bảng trong cơ sở dữ liệu
+    timestamps: false, // Tắt sử dụng các trường timestamps (createdAt, updatedAt)
+  }
+);
 
 module.exports = History;

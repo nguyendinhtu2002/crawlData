@@ -4,7 +4,7 @@ const app = express();
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const fs = require("fs");
-const connectDatabase = require("./config/db.js");
+const connectDatabase = require("./config/db1.js");
 const cron = require("node-cron");
 const moment = require("moment-timezone");
 const cors = require("cors");
@@ -12,6 +12,7 @@ const dotenv = require("dotenv");
 const { default: axios } = require("axios");
 const ModelRouter = require("./router/Model.js");
 const HistoryRouter = require("./router/History.js");
+const sql = require("mssql");
 
 const Model = require("./model/Model.js");
 const History = require("./model/History.js");
@@ -55,10 +56,13 @@ const fetchData = async () => {
         !isEvaluated
       ) {
         const data = await response.json();
-        const allRecords = await Model.find({}, "SHIP_ID");
+        const allRecords = await Model.findAll();
+        const dataValuesArray = allRecords.map((model) => model.dataValues);
 
         filteredData = data.data.rows.filter((item) => {
-          return allRecords.some((record) => record.SHIP_ID === item.SHIP_ID);
+          return dataValuesArray.some(
+            (record) => record.SHIP_ID === item.SHIP_ID
+          );
         });
 
         if (filteredData.length > 0) {
@@ -127,49 +131,62 @@ const fetchData = async () => {
     console.log(error);
   }
 };
+const config = {
+  user: "admin1",
+  password: "admin",
+  server: "TU",
+  database: "MMSI",
+  options: {
+    trustServerCertificate: true, // Nếu sử dụng SSL
+  },
+};
+
 const getMmsi = async () => {
+  await sql.connect(config);
+
   const browser = await puppeteer.launch({
     headless: false,
     args: ["--start-maximized"],
   });
   const page = await browser.newPage();
 
-  if (!fs.existsSync("updated_data.json")) {
-    console.log("File 'updated_data.json' not found.");
-    await browser.close();
-    return;
-  }
-  const data = fs.readFileSync("updated_data.json");
+  const records = await Model.findAll();
 
-  const jsonData = JSON.parse(data);
-  if (jsonData.length > 0) {
-    for (let i = 0; i < jsonData.length; i++) {
-      // Delete all cookies
+  const dataValuesArray = records.map((model) => model.dataValues);
+  if (dataValuesArray.length > 0) {
+    for (let i = 0; i < dataValuesArray.length; i++) {
       const client = await page.target().createCDPSession();
       await client.send("Network.clearBrowserCookies");
-      // Disable cache
       await page.setCacheEnabled(false);
 
       await page.goto("https://www.marinetraffic.com/users/login");
+      await page.waitForSelector(".css-47sehv");
+      await page.click(".css-47sehv");
+      await page.waitForSelector("#email");
+      await page.type("#email", "andesong2488@gmail.com");
 
-      // Rest of the login process...
+      await page.waitForSelector("#password");
+      await page.type("#password", "huongKhenh123");
 
-      const shipId = jsonData[i].SHIP_ID;
+      await page.waitForSelector("#login_form_submit");
+      await page.click("#login_form_submit");
+      await page.waitForNavigation();
+
+      const shipId = dataValuesArray[i].IdMarinetraffic;
+      let id = dataValuesArray[i].id;
       const url = `${process.env.URL}${shipId}`;
-      await page.waitForTimeout(10000);
 
       await page.goto(url);
-      // Wait for the page content to load completely
       await page.waitForSelector(
         ".MuiTypography-root.MuiTypography-caption.css-qc770s"
       );
 
-      // Extract elements based on CSS class
       const elements = await page.$$(
         ".MuiTypography-root.MuiTypography-caption.css-qc770s"
       );
 
       const arr = [];
+
       for (const element of elements) {
         const text = await page.evaluate(
           (element) => element.textContent,
@@ -188,57 +205,120 @@ const getMmsi = async () => {
       const endIndex = bElement.indexOf(" LT");
 
       const result = bElement.substring(0, endIndex);
+      const link = await page.evaluate(() => {
+        const element = document.querySelector(
+          "p.MuiTypography-root:nth-child(5) a.MuiLink-root"
+        );
+        return element ? element.textContent : null;
+      });
+      const parts = link.split(" / ");
+      const LAT = parseFloat(parts[0].replace("°", ""));
+      const LOT = parseFloat(parts[1].replace("°", ""));
+      const coordinates = await page.evaluate(() => {
+        const element = document.querySelector(
+          "p.MuiTypography-root:nth-child(7) b"
+        );
+        return element ? element.textContent : null;
+      });
+      const [speed, courseWithDegree] = coordinates.split(" kn / ");
+      const course = courseWithDegree.replace(" °", "");
 
       const dateTime = moment(result, "YYYY-MM-DD HH:mm").toDate();
+      const dateTimeTemp = moment(result, "YYYY-MM-DD HH:mm");
+      const formattedDateTime = moment(dateTime).format("YYYY-MM-DD HH:mm:ss");
       const unixTimestamp = Math.floor(dateTime.getTime() / 1000);
-
       const currentUrl = page.url();
+
       const mmsi = extractMmsiFromUrl(currentUrl);
-      const imo = extractImoFromUrl(currentUrl);
+
+
       if (mmsi !== null) {
-        const existingRecord = await History.findOne({ SHIP_ID: shipId });
-        if (existingRecord) {
-          if (existingRecord.DATE < unixTimestamp) {
-            const historyData = {
-              SHIP_ID: shipId,
-              MMSI: mmsi,
-              imo: imo,
-              DATE: unixTimestamp,
-              START: arr[0],
-              END: arr[1],
-              SPEED: jsonData[i].SPEED,
-              LAT: jsonData[i].LAT,
-              LON: jsonData[i].LON,
-            };
-            const newRecord = new History(historyData);
-            await newRecord.save();
-            console.log("Success for item " + i);
+        try {
+          const existingRecord = await History.findOne({
+            where: { IdVessel: id },
+            order: [["Id", "DESC"]],
+          });
+          if (existingRecord) {
+            const existingDateTime = moment(existingRecord.dataValues.DayTime);
+            if (existingDateTime.isBefore(dateTime)) {
+              const Long = parseFloat(LOT);
+              const Lat =  parseFloat(LAT);
+              const DayTime = formattedDateTime;
+              const MoveDirection =  parseFloat(course);
+              const MoveSpeed =  parseFloat(speed);
+              const MoveStart = arr[0];
+              const MoveFinishExpected = arr[1];
+              const IdVessel = id;
+
+              const request = new sql.Request();
+              request.input("Long", sql.Int, Long);
+              request.input("Lat", sql.Int, Lat);
+              request.input("DayTime", sql.DateTime, DayTime);
+              request.input("MoveDirection", sql.Int, MoveDirection);
+              request.input("MoveSpeed", sql.Int, MoveSpeed);
+              request.input("MoveStart", sql.VarChar, MoveStart);
+              request.input(
+                "MoveFinishExpected",
+                sql.VarChar,
+                MoveFinishExpected
+              );
+              request.input("IdVessel", sql.Int, IdVessel);
+
+              const query = `
+        INSERT INTO [MoveOnSea] ([Long], [Lat], [DayTime], [MoveDirection], [MoveSpeed], [MoveStart], [MoveFinishExpected], [IdVessel])
+        OUTPUT INSERTED.[Id], INSERTED.[Long], INSERTED.[Lat], INSERTED.[DayTime], INSERTED.[MoveDirection], INSERTED.[MoveSpeed], INSERTED.[MoveStart], INSERTED.[MoveFinishExpected], INSERTED.[IdVessel]
+        VALUES (@Long, @Lat, @DayTime, @MoveDirection, @MoveSpeed, @MoveStart, @MoveFinishExpected, @IdVessel);
+      `;
+
+              const result = await request.query(query);
+              console.log("Success for item " + i);
+            } else {
+              console.log("Skipped for item " + i);
+            }
           } else {
-            console.log("Skipped for item " + i);
+            const Long = parseFloat(LOT);
+            const Lat = parseFloat(LAT);
+            const DayTime = formattedDateTime;
+            const MoveDirection = parseFloat(course);
+            const MoveSpeed = parseFloat(speed);
+            const MoveStart = arr[0];
+            const MoveFinishExpected = arr[1];
+            const IdVessel = id;
+
+            const request = new sql.Request();
+            request.input("Long", sql.Int, Long);
+            request.input("Lat", sql.Int, Lat);
+            request.input("DayTime", sql.DateTime, DayTime);
+            request.input("MoveDirection", sql.Int, MoveDirection);
+            request.input("MoveSpeed", sql.Int, MoveSpeed);
+            request.input("MoveStart", sql.VarChar, MoveStart);
+            request.input(
+              "MoveFinishExpected",
+              sql.VarChar,
+              MoveFinishExpected
+            );
+            request.input("IdVessel", sql.Int, IdVessel);
+
+            const query = `
+                INSERT INTO [MoveOnSea] ([Long], [Lat], [DayTime], [MoveDirection], [MoveSpeed], [MoveStart], [MoveFinishExpected], [IdVessel])
+                OUTPUT INSERTED.[Id], INSERTED.[Long], INSERTED.[Lat], INSERTED.[DayTime], INSERTED.[MoveDirection], INSERTED.[MoveSpeed], INSERTED.[MoveStart], INSERTED.[MoveFinishExpected], INSERTED.[IdVessel]
+                VALUES (@Long, @Lat, @DayTime, @MoveDirection, @MoveSpeed, @MoveStart, @MoveFinishExpected, @IdVessel);
+              `;
+
+            const result = await request.query(query);
+            console.log("Success for item " + i);
           }
-        } else {
-          const historyData = {
-            SHIP_ID: shipId,
-            MMSI: mmsi,
-            imo: imo,
-            DATE: unixTimestamp,
-            START: arr[0],
-            END: arr[1],
-            SPEED: jsonData[i].SPEED,
-            LAT: jsonData[i].LAT,
-            LON: jsonData[i].LON,
-          };
-          const newRecord = new History(historyData);
-          await newRecord.save();
-          console.log("Success for item " + i);
+        } catch (error) {
+          console.error(`Error: ${error.message}`);
+          throw error;
         }
       }
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+
     }
-    fs.unlinkSync("updated_data.json");
     await browser.close();
   }
 };
-
 const headers = {
   "User-Agent":
     "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
