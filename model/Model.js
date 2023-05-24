@@ -12,6 +12,7 @@ const sequelize = new Sequelize({
       trustedConnection: true,
     },
   },
+  logging: false, 
 });
 
 const Model = sequelize.define(

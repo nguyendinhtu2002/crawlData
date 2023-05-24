@@ -151,11 +151,13 @@ const getMmsi = async () => {
   await sql.connect(config);
 
   const browser = await puppeteer.launch({
-    headless: false,
     args: ["--start-maximized"],
   });
   const page = await browser.newPage();
-
+  await page.setViewport({
+    width: 1920,
+    height: 1080,
+  });
   const records = await Model.findAll();
 
   const dataValuesArray = records.map((model) => model.dataValues);
@@ -220,7 +222,6 @@ const getMmsi = async () => {
       const parts = link.split(" / ");
       const LAT = parseFloat(parts[0].replace("°", ""));
       const LOT = parseFloat(parts[1].replace("°", ""));
-      console.log(LAT + typeof LAT);
       const coordinates = await page.evaluate(() => {
         const element = document.querySelector(
           "p.MuiTypography-root:nth-child(7) b"
@@ -242,7 +243,11 @@ const getMmsi = async () => {
           });
           if (existingRecord) {
             const existingDateTime = moment(existingRecord.dataValues.DayTime);
-            if (existingDateTime.isBefore(dateTime)) {
+            const timeDifference = moment(dateTime).diff(
+              existingDateTime,
+              "minutes"
+            );
+            if (timeDifference > 10) {
               const Long = parseFloat(LOT);
               const Lat = parseFloat(LAT);
               const DayTime = formattedDateTime;
@@ -267,10 +272,10 @@ const getMmsi = async () => {
               request.input("IdVessel", sql.Int, IdVessel);
 
               const query = `
-      INSERT INTO [MoveOnSea] ([Long], [Lat], [DayTime], [MoveDirection], [MoveSpeed], [MoveStart], [MoveFinishExpected], [IdVessel])
-      OUTPUT INSERTED.[Id], INSERTED.[Long], INSERTED.[Lat], INSERTED.[DayTime], INSERTED.[MoveDirection], INSERTED.[MoveSpeed], INSERTED.[MoveStart], INSERTED.[MoveFinishExpected], INSERTED.[IdVessel]
-      VALUES (@Long, @Lat, @DayTime, @MoveDirection, @MoveSpeed, @MoveStart, @MoveFinishExpected, @IdVessel);
-    `;
+                INSERT INTO [MoveOnSea] ([Long], [Lat], [DayTime], [MoveDirection], [MoveSpeed], [MoveStart], [MoveFinishExpected], [IdVessel])
+                OUTPUT INSERTED.[Id], INSERTED.[Long], INSERTED.[Lat], INSERTED.[DayTime], INSERTED.[MoveDirection], INSERTED.[MoveSpeed], INSERTED.[MoveStart], INSERTED.[MoveFinishExpected], INSERTED.[IdVessel]
+                VALUES (@Long, @Lat, @DayTime, @MoveDirection, @MoveSpeed, @MoveStart, @MoveFinishExpected, @IdVessel);
+              `;
 
               const result = await request.query(query);
               console.log("Success for item " + i);
@@ -322,7 +327,7 @@ const getMmsi = async () => {
 };
 const fetchDataWeb1 = async () => {
   const browser = await puppeteer.launch({
-    headless: false,
+    // headless: false,
   });
   const page = await browser.newPage();
 
@@ -384,7 +389,6 @@ const fetchDataWeb1 = async () => {
           .toISOString()
           .slice(0, 19)
           .replace("T", " ");
-        console.log(time + " " + localDateTimeString);
         if (valueElements.length >= 3) {
           const valueElement = valueElements[2];
           const valueText = await page.evaluate(
@@ -409,8 +413,14 @@ const fetchDataWeb1 = async () => {
         });
 
         if (existingRecord) {
+          const dateTime = moment(time, "MMM DD, YYYY, HH:mm:ss");
+          const convertedDateTime = dateTime.format("YYYY-MM-DD HH:mm:ss.SSS");
           const existingDateTime = moment(existingRecord.dataValues.DayTime);
-          if (existingDateTime.isBefore(localDateTime)) {
+          const timeDifference = moment(convertedDateTime).diff(
+            existingDateTime,
+            "minutes"
+          );
+          if (timeDifference > 10) {
             const query = `
                 INSERT INTO [MoveOnSea] ([Long], [Lat], [DayTime], [MoveDirection], [MoveSpeed], [MoveStart], [MoveFinishExpected], [IdVessel])
                 OUTPUT INSERTED.[Id], INSERTED.[Long], INSERTED.[Lat], INSERTED.[DayTime], INSERTED.[MoveDirection], INSERTED.[MoveSpeed], INSERTED.[MoveStart], INSERTED.[MoveFinishExpected], INSERTED.[IdVessel]
@@ -466,7 +476,8 @@ const fetchDataWeb1 = async () => {
 };
 
 
-cron.schedule("*/10 * * * *", () => {
+
+cron.schedule("*/1 * * * *", () => {
   getMmsi();
   fetchDataWeb1();
 });

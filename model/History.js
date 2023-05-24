@@ -13,6 +13,7 @@ const sequelize = new Sequelize({
       trustedConnection: true,
     },
   },
+  logging: false, 
 });
 
 const History = sequelize.define(
