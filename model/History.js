@@ -4,9 +4,9 @@ const moment = require('moment');
 const sequelize = new Sequelize({
   dialect: "mssql",
   host: "localhost",
-  server: "DESKTOP-HMN562A", // Kiểm tra và cung cấp tên máy chủ của cơ sở dữ liệu
+  server: "TU", // Kiểm tra và cung cấp tên máy chủ của cơ sở dữ liệu
   database: "MMSI",
-  username: "admin",
+  username: "admin1",
   password: "admin",
   dialectOptions: {
     options: {
