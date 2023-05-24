@@ -3,9 +3,9 @@ const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = new Sequelize({
   dialect: "mssql",
   host: "localhost",
-  server: "TU", // Kiểm tra và cung cấp tên máy chủ của cơ sở dữ liệu
+  server: "DESKTOP-HMN562A", // Kiểm tra và cung cấp tên máy chủ của cơ sở dữ liệu
   database: "MMSI",
-  username: "admin1",
+  username: "admin",
   password: "admin",
   dialectOptions: {
     options: {
